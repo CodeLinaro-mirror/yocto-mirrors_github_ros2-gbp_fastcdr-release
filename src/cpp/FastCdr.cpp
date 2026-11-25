@@ -15,7 +15,6 @@
 #include <fastcdr/FastCdr.h>
 #include <fastcdr/exceptions/BadParamException.h>
 #include <string.h>
-#include "helpers/memory_helpers.hpp"
 
 using namespace eprosima::fastcdr;
 using namespace ::exception;
@@ -91,9 +90,15 @@ bool FastCdr::resize(
 FastCdr& FastCdr::serialize(
         const bool bool_t)
 {
+    uint8_t value = 0;
+
     if (((last_position_ - current_position_) >= sizeof(uint8_t)) || resize(sizeof(uint8_t)))
     {
-        serialize_bool(bool_t);
+        if (bool_t)
+        {
+            value = 1;
+        }
+        current_position_++ << value;
 
         return *this;
     }
@@ -185,7 +190,13 @@ FastCdr& FastCdr::serialize_array(
     {
         for (size_t count = 0; count < num_elements; ++count)
         {
-            serialize_bool(bool_t[count]);
+            uint8_t value = 0;
+
+            if (bool_t[count])
+            {
+                value = 1;
+            }
+            current_position_++ << value;
         }
 
         return *this;
@@ -680,16 +691,6 @@ FastCdr& FastCdr::deserialize_array(
     throw NotEnoughMemoryException(NotEnoughMemoryException::NOT_ENOUGH_MEMORY_MESSAGE_DEFAULT);
 }
 
-inline void FastCdr::serialize_bool(
-        bool bool_t)
-{
-#if FASTCDR_STRICT_BOOL
-    current_position_++ << static_cast<uint8_t>(normalize_bool(bool_t));
-#else
-    current_position_++ << (bool_t ? static_cast<uint8_t>(1) : static_cast<uint8_t>(0));
-#endif // if FASTCDR_STRICT_BOOL
-}
-
 FastCdr& FastCdr::serialize_bool_sequence(
         const std::vector<bool>& vector_t)
 {
@@ -703,7 +704,14 @@ FastCdr& FastCdr::serialize_bool_sequence(
     {
         for (size_t count = 0; count < vector_t.size(); ++count)
         {
-            serialize_bool(vector_t[count]);
+            uint8_t value = 0;
+            std::vector<bool>::const_reference ref = vector_t[count];
+
+            if (ref)
+            {
+                value = 1;
+            }
+            current_position_++ << value;
         }
     }
     else
